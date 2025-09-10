@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import json
 from typing import List, Dict, Any, Optional
 

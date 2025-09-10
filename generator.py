@@ -26,53 +26,20 @@ class RecipeGenerator:
     ) -> Dict[str, Any]:
         """
         根据食材列表和约束条件生成结构化菜谱
-
-        Args:
-            ingredients: 食材列表
-            cuisine_type: 菜系类型，默认为"中式"
-            difficulty: 难度等级，可选："简单"、"中等"、"困难"
-            max_cook_time: 最大烹饪时间（分钟），如果指定则必须在此时间内完成
-            dietary_requirements: 饮食要求列表，如["不辣", "素食", "低盐"]
-            calorie_preference: 热量偏好，如"低热量"、"高蛋白"
-            serving_size: 份数，默认为2
-
-        Returns:
-            包含菜谱信息的字典，格式如下：
-            {
-                "dish_name": "菜品名称",
-                "description": "菜品描述",
-                "cuisine_type": "菜系类型",
-                "difficulty": "难度等级",
-                "prep_time_mins": 15,
-                "cook_time_mins": 20,
-                "servings": 2,
-                "ingredients": [
-                    {
-                        "name": "食材名称",
-                        "amount": 2,
-                        "unit": "个"
-                    }
-                ],
-                "instructions": [
-                    {
-                        "step": 1,
-                        "description": "步骤描述"
-                    }
-                ],
-                "tips": ["烹饪小贴士"],
-                "nutritional_info": {
-                    "calories_kcal": 350,
-                    "protein_g": 30,
-                    "carbs_g": 25,
-                    "fat_g": 15
-                }
-            }
         """
 
         if not ingredients:
             raise ValueError("食材列表不能为空")
 
-        # 构建提示词
+        # 将固定的系统指令定义在这里
+        system_prompt = """
+你是一位富有创意且乐于助人的专业厨师和营养师，专注于简单易学的家常菜。
+你的核心任务是根据用户提供的食材和约束条件，创作一份美味、步骤清晰的菜谱。
+你必须严格按照要求的JSON格式返回结果，除了JSON本身，不要包含任何额外的解释、注释或标题。
+重要规则：JSON的“键”(key)必须是全英文小写蛇形命名法(snake_case)，但JSON的“值”(value)（例如菜品名称、描述、步骤等）必须使用简体中文。
+"""
+
+        # 构建本次任务的具体提示词
         prompt = self._build_prompt(
             ingredients,
             cuisine_type,
@@ -88,11 +55,10 @@ class RecipeGenerator:
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "你是一个专业的厨师和营养师，擅长根据提供的食材创建美味且营养均衡的菜谱。请严格按照要求的JSON格式返回结果。",
-                    },
-                    {"role": "user", "content": prompt},
+                    # <<< 将定义好的系统指令放在这里 >>>
+                    {"role": "system", "content": system_prompt},
+                    # <<< user_prompt现在只包含本次任务的动态信息 >>>
+                    {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.7,
                 max_completion_tokens=1500,
@@ -133,10 +99,7 @@ class RecipeGenerator:
         )
 
         prompt = f"""
-你是一位富有创意且乐于助人的专业厨师和营养师，专注于简单易学的家常菜。
-你的任务是根据用户提供的食材和约束条件，创作一份美味、步骤清晰的菜谱。
-
-请严格按照以下要求，返回一个结构化的JSON对象。除了JSON本身，不要包含任何额外的解释、注释或标题。
+请根据以下具体信息创作一份菜谱：
 
 食材：{ingredients_str}
 菜系：{cuisine_type}
