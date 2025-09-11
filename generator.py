@@ -31,7 +31,7 @@ class RecipeGenerator:
         if not ingredients:
             raise ValueError("食材列表不能为空")
 
-        # 将固定的系统指令定义在这里
+        # System Prompt: 定义所有不变的规则（角色+通用指令）
         system_prompt = """
 你是一位富有创意且乐于助人的专业厨师和营养师，专注于简单易学的家常菜。
 你的核心任务是根据用户提供的食材和约束条件，创作一份美味、步骤清晰的菜谱。
@@ -40,7 +40,8 @@ class RecipeGenerator:
 """
 
         # 构建本次任务的具体提示词
-        prompt = self._build_prompt(
+        # User Prompt: 只包含本次任务的动态信息（食材、约束条件等）
+        user_prompt = self._build_prompt(
             ingredients,
             cuisine_type,
             difficulty,
@@ -98,6 +99,8 @@ class RecipeGenerator:
             "\n".join([f"- {c}" for c in constraints]) if constraints else "无特殊要求"
         )
 
+        # 构建本次任务的具体提示词
+        # _build_prompt 现在只负责构建“任务本身”，不再包含角色设定
         prompt = f"""
 请根据以下具体信息创作一份菜谱：
 
