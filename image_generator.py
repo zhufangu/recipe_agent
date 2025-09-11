@@ -1,6 +1,6 @@
 import os
-from http import HTTPStatus
-from dashscope import ImageSynthesis
+import dashscope
+from dashscope import MultiModalConversation
 from dotenv import load_dotenv
 from typing import Dict, Any
 
@@ -9,9 +9,11 @@ load_dotenv()
 
 class QwenImageGenerator:
     """
-    使用阿里云通义千问官方SDK (dashscope) 生成菜品图片的工具。
-    集成了高级的动态Prompt构建逻辑，并采用简洁的同步调用方式。
+    使用阿里云通义千问 MultiModalConversation API 生成菜品图片的工具。
+    基于成功的测试代码进行优化。
     """
+
+    MODEL = "qwen-image"
 
     def __init__(self):
         """
@@ -32,67 +34,64 @@ class QwenImageGenerator:
             成功则返回图片URL，失败则返回None。
         """
         try:
-            # 1. 使用高级逻辑构建一个高质量的Prompt
+            # 1. 构建高质量的中文Prompt
             prompt = self._compose_prompt_from_recipe(recipe_json)
-            print("📸 正在使用动态生成的Prompt调用通义千问SDK...")
-            # 打印部分Prompt用于调试，避免过长刷屏
-            print(f"   - Prompt: {prompt[:120]}...")
+            print("📸 正在使用 MultiModalConversation API (qwen-image) 生成图片...")
+            print(f"   - Prompt: {prompt[:200]}...")
 
-            # 2. 使用简洁的SDK进行同步调用
-            response = ImageSynthesis.call(
-                model="wanx-v1",
-                prompt=prompt,
+            # 2. 使用正确的消息格式调用API
+            messages = [
+                {
+                    "role": "user",
+                    "content": [{"text": prompt}],
+                }
+            ]
+
+            # 3. 调用 MultiModalConversation API
+            response = MultiModalConversation.call(
+                model=self.MODEL,
+                messages=messages,
                 api_key=self.api_key,
-                n=1,
-                size="1024*1024",
-                style="<photo-realistic>",  # 明确指定写实摄影风格
-                # 添加negative_prompt以提升图片质量，避免出现不想要的元素
-                negative_prompt="文字, 水印, logo, 筷子, 叉子, 勺子, 人脸, 手部, 夸张变形",
             )
 
-            # 3. 处理返回结果
-            if response.status_code == HTTPStatus.OK:
-                image_url = response.output.results[0].url
-                print(f"🎉 图片生成成功! URL: {image_url}")
+            # 4. 处理返回结果
+            if response.status_code == 200:
+                print("🎉 图片生成成功！")
+                # 按照你的成功代码解析结果
+                image_url = response.output.choices[0].message.content[0]["image"]
+                print(f"   - 图片URL: {image_url}")
                 return image_url
             else:
-                # 打印详细的官方错误信息，方便排查问题
-                print(f"❌ 图片生成任务失败, 状态码: {response.status_code}")
-                print(f"   错误码: {response.code}")
-                print(f"   错误信息: {response.message}")
+                print(f"❌ 图片生成失败，HTTP返回码：{response.status_code}")
+                print(f"   - 错误码：{response.code}")
+                print(f"   - 错误信息：{response.message}")
                 return None
 
         except Exception as e:
-            print(f"❌ 图片生成过程中发生SDK调用错误: {e}")
+            print(f"❌ 图片生成过程中发生错误: {e}")
             return None
 
     def _compose_prompt_from_recipe(self, recipe: Dict[str, Any]) -> str:
         """
         将结构化菜谱转换为高质量的中文图像生成提示词。
+        基于你成功的测试代码进行优化。
         """
-        name = recipe.get("dish_name", "")
-        desc = recipe.get("description", "")
-        cuisine = recipe.get("cuisine_type", "")
+        name = recipe.get("dish_name", "一道美味的菜肴")
 
-        style_bias = []
-        # 根据菜系动态添加风格描述
-        if "中" in cuisine:
-            style_bias.append(
-                "中式家常菜风格, 温暖的灯光, 菜品盛放在一个精美的青花瓷盘中, 放在深色木质桌面上"
-            )
-        elif "西" in cuisine:
-            style_bias.append(
-                "现代简约西式摆盘, 浅景深摄影, 干净的白色大瓷盘, 侧面有柔和的自然光"
-            )
-        else:
-            style_bias.append("专业美食摄影, 浅景深, 极简背景, 突出食物本身")
+        # 提取核心食材
+        ingredients = recipe.get("ingredients", [])
+        key_ingredients = [
+            ing.get("name") for ing in ingredients[:3] if ing.get("name")
+        ]
+        ingredients_str = ", ".join(key_ingredients)
 
-        # 组合成最终的Prompt
-        final_prompt = (
-            f"特写镜头, '{name}', {desc}。 "
-            f"{' '.join(style_bias)}. "
-            "突出菜肴的质感与光泽, 背景干净明亮, 画面充满食欲, 照片级真实感, 电影级光效, 细节丰富, 高清画质, 8K"
-        )
+        # 构建高质量的中文Prompt（基于你成功的测试代码）
+        core_prompt = f"一道精美的 '{name}' 美食照片, 清晰地展示出 {ingredients_str}。"
+
+        # 风格关键词（基于你成功的测试代码）
+        keywords = "专业美食摄影, 温暖的灯光, 菜品盛放在一个精美的白色瓷盘中, 放在简约的木质桌面上, 浅景深, 突出菜肴的质感与光泽, 背景干净明亮, 画面充满食欲, 照片级真实感, 电影级光效, 细节丰富, 高清画质"
+
+        final_prompt = f"{core_prompt} {keywords}"
         return final_prompt.strip()
 
 
@@ -106,6 +105,11 @@ if __name__ == "__main__":
         "description": "色泽红亮诱人，肥而不腻，入口即化，酱汁浓郁",
         "cuisine_type": "中式家常",
         "difficulty": "中等",
+        "ingredients": [
+            {"name": "五花肉", "unit": "g"},
+            {"name": "生姜", "unit": "g"},
+            {"name": "大葱", "unit": "g"},
+        ],
     }
 
     try:
