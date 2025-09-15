@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 from parser import RecipeRequirementsParser
 from generator import RecipeGenerator
 from image_generator import QwenImageGenerator
+from gpt_vision_analyzer import GPTVisionAnalyzer
 
 from dotenv import load_dotenv
 
@@ -22,6 +23,8 @@ class RecipeAgent:
         self.generator = RecipeGenerator(api_key)
         # 初始化图片生成器实例
         self.image_generator = QwenImageGenerator()
+        # 初始化GPT Vision分析器实例
+        self.vision_analyzer = GPTVisionAnalyzer(api_key)
 
     def generate_recipe_text_only(self, user_input: str) -> Dict[str, Any]:
         """
@@ -88,6 +91,32 @@ class RecipeAgent:
             return None
         except Exception as e:
             raise Exception(f"生成菜品图片时发生错误: {str(e)}")
+
+    def identify_ingredients(self, image_file) -> list:
+        """
+        识别图片中的食材
+
+        Args:
+            image_file: 图片文件对象
+
+        Returns:
+            识别到的食材列表
+        """
+        try:
+            print("🔍 正在分析图片中的食材...")
+            result = self.vision_analyzer.analyze_image_for_ingredients(image_file)
+
+            if result["success"]:
+                ingredients = result["ingredients"]
+                print(f"✅ 图片分析成功！识别到 {len(ingredients)} 种食材")
+                return ingredients
+            else:
+                print(f"❌ 图片分析失败: {result.get('error', '未知错误')}")
+                return []
+
+        except Exception as e:
+            print(f"❌ 图片分析时发生错误: {e}")
+            return []
 
 
 # 用于单独、快速测试Agent核心逻辑的模块
