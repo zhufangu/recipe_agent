@@ -33,4 +33,23 @@ export interface Recipe {
 
 export interface RecipeCardProps {
   recipe: Recipe;
+  onGenerateImage: () => void;
+  isGeneratingImage: boolean;
+  imageError: string | null;
+}
+
+export interface ImageUploadProps {
+  onImageUpload: (file: File) => void;
+  isAnalyzing: boolean;
+  analysisError: string | null;
+  identifiedIngredients: string[];
+  onGenerateRecipe: (ingredients: string[]) => void;
+  isGeneratingRecipe: boolean;
+}
+
+export interface IngredientAnalysisResult {
+  success: boolean;
+  ingredients: string[];
+  confidence?: string;
+  error?: string;
 }

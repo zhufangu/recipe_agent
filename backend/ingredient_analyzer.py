@@ -1,18 +1,17 @@
 import base64
-import io
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
 from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
-class GPTVisionAnalyzer:
+class IngredientAnalyzer:
     """基于GPT-4o-mini的图片分析器"""
 
     def __init__(self, api_key: Optional[str] = None):
         """
-        初始化GPT Vision分析器
+        初始化分析器
 
         Args:
             api_key: OpenAI API密钥
@@ -21,7 +20,7 @@ class GPTVisionAnalyzer:
         self.client = OpenAI(api_key=self.api_key)
 
     def _get_api_key(self) -> str:
-        """获取OpenAI API密钥"""
+        """获取API密钥"""
         import os
 
         api_key = os.getenv("OPENAI_API_KEY")

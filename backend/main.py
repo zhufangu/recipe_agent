@@ -1,15 +1,17 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware  # 为了允许前端调用
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from typing import Dict, Any
+import io
 
-load_dotenv()
-# 1. 从 parser.py 文件导入需要的类
+# 导入所有需要的类
 from parser import RecipeRequirementsParser
 from generator import RecipeGenerator
 from image_generator import QwenImageGenerator
-# from gpt_vision_analyzer import GPTVisionAnalyzer
+from ingredient_analyzer import IngredientAnalyzer
+
+load_dotenv()
 
 
 app = FastAPI()
@@ -32,12 +34,12 @@ class RecipeRequest(BaseModel):
     description: str
 
 
-# 2. 在API函数外创建解析器的实例
+# 在API函数外创建解析器的实例,初始化所有AI组件
 # 这样应用启动时就创建好了，不用每次请求都重新创建一个，效率更高
 parser = RecipeRequirementsParser()
 generator = RecipeGenerator()
 image_generator = QwenImageGenerator()
-# gpt_vision_analyzer = GPTVisionAnalyzer()
+ingredient_analyzer = IngredientAnalyzer()
 
 
 @app.post("/api/v1/recipes/generate")
@@ -59,7 +61,7 @@ async def generate_recipe(request: RecipeRequest):  # 👈 把模型作为类型
     print(f"收到了前端发来的请求: {user_description}")
 
     try:
-        # 3. 调用解析器，解析用户需求
+        # 调用解析器，解析用户需求
         print("🔍 正在解析您的需求...")
         requirements = parser.parse_requirements(user_description)
         print(f"✅ 解析完成！识别到：")
@@ -110,4 +112,41 @@ async def generate_recipe_image(request: RecipeImageRequest):
         return {"image_url": image_url}
     except Exception as e:
         print(f"❌ 生成菜品图片时发生错误: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/ingredients/analyze")
+async def analyze_ingredients_from_image(file: UploadFile = File(...)):
+    """
+    从上传的图片中识别食材
+    """
+    print(f"收到图片分析请求，文件名: {file.filename}")
+
+    try:
+        # 读取上传的图片文件
+        image_data = await file.read()
+        image_file = io.BytesIO(image_data)
+        image_file.name = file.filename  # 设置文件名，供分析器使用
+
+        print("🔍 正在分析图片中的食材...")
+        result = ingredient_analyzer.analyze_image_for_ingredients(image_file)
+
+        if result["success"]:
+            ingredients = result["ingredients"]
+            print(f"✅ 图片分析成功！识别到 {len(ingredients)} 种食材: {ingredients}")
+            return {
+                "success": True,
+                "ingredients": ingredients,
+                "confidence": result.get("confidence", "unknown"),
+            }
+        else:
+            print(f"❌ 图片分析失败: {result.get('error', '未知错误')}")
+            return {
+                "success": False,
+                "error": result.get("error", "图片分析失败"),
+                "ingredients": [],
+            }
+
+    except Exception as e:
+        print(f"❌ 处理图片时发生错误: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
