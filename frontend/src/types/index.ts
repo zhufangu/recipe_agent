@@ -31,20 +31,75 @@ export interface Recipe {
   image_url?: string;
 }
 
+// 对话相关类型
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'ai';
+  content: string;
+  timestamp: Date;
+}
+
+export interface TabState {
+  conversation: ChatMessage[];
+  recipe: Recipe | null;
+  isGenerating: boolean;
+  error: string | null;
+}
+
+export interface ImageTabState extends TabState {
+  identifiedIngredients: string[];
+  isAnalyzing: boolean;
+  analysisError: string | null;
+}
+
+export interface TextTabState extends TabState {
+  userInput: string;
+}
+
+// 组件 Props 接口
 export interface RecipeCardProps {
   recipe: Recipe;
   onGenerateImage: () => void;
   isGeneratingImage: boolean;
   imageError: string | null;
+  onOptimizeRecipe: (message: string) => void;
+  isOptimizing: boolean;
 }
 
-export interface ImageUploadProps {
+export interface ChatInterfaceProps {
+  messages: ChatMessage[];
+  onSendMessage: (message: string) => void;
+  isLoading: boolean;
+  placeholder?: string;
+}
+
+export interface IngredientManagerProps {
+  ingredients: string[];
+  onRemoveIngredient: (ingredient: string) => void;
+  onAddIngredient: (ingredient: string) => void;
+  isEditable: boolean;
+}
+
+export interface ImageRecognitionTabProps {
+  state: ImageTabState;
   onImageUpload: (file: File) => void;
-  isAnalyzing: boolean;
-  analysisError: string | null;
-  identifiedIngredients: string[];
-  onGenerateRecipe: (ingredients: string[]) => void;
-  isGeneratingRecipe: boolean;
+  onSendMessage: (message: string) => void;
+  onRemoveIngredient: (ingredient: string) => void;
+  onAddIngredient: (ingredient: string) => void;
+  onGenerateRecipe: () => void;
+  onGenerateImage?: () => void;
+  isGeneratingImage?: boolean;
+  imageError: string | null;
+}
+
+export interface TextInputTabProps {
+  state: TextTabState;
+  onInputChange: (input: string) => void;
+  onSendMessage: (message: string) => void;
+  onGenerateRecipe: () => void;
+  onGenerateImage?: () => void;
+  isGeneratingImage?: boolean;
+  imageError: string | null;
 }
 
 export interface IngredientAnalysisResult {
@@ -53,3 +108,6 @@ export interface IngredientAnalysisResult {
   confidence?: string;
   error?: string;
 }
+
+// 主题相关类型
+export type Theme = 'light' | 'dark';

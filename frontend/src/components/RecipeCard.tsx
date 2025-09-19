@@ -1,22 +1,17 @@
-import { Recipe } from '../types';
-
-interface RecipeCardProps {
-  recipe: Recipe;
-  onGenerateImage: () => void;
-  isGeneratingImage: boolean;
-  imageError: string | null;
-}
+import { RecipeCardProps } from '../types';
 
 export default function RecipeCard({
   recipe,
   onGenerateImage,
   isGeneratingImage,
   imageError,
+  onOptimizeRecipe,
+  isOptimizing,
 }: RecipeCardProps) {
   return (
     <div
+      className="recipe-card"
       style={{
-        border: '1px solid #ccc',
         padding: '20px',
         margin: '20px 0',
         borderRadius: '8px',
@@ -42,22 +37,23 @@ export default function RecipeCard({
           <button
             onClick={onGenerateImage}
             disabled={isGeneratingImage}
+            className="btn-primary"
             style={{
               padding: '10px 20px',
-              backgroundColor: isGeneratingImage ? '#ccc' : '#007bff',
-              color: 'white',
-              border: 'none',
               borderRadius: '6px',
-              cursor: isGeneratingImage ? 'not-allowed' : 'pointer',
               fontSize: '16px',
               fontWeight: '500',
+              cursor: isGeneratingImage ? 'not-allowed' : 'pointer',
+              opacity: isGeneratingImage ? 0.6 : 1,
             }}
           >
             {isGeneratingImage ? '生成中...' : '生成图片'}
           </button>
           {/* 显示从 Props 传来的图片生成错误 */}
           {imageError && (
-            <p style={{ color: 'red', marginTop: '10px' }}>{imageError}</p>
+            <p style={{ marginTop: '10px', color: 'var(--error)' }}>
+              {imageError}
+            </p>
           )}
         </div>
       )}
@@ -109,6 +105,93 @@ export default function RecipeCard({
           </ul>
         </>
       )}
+
+      {/* 优化菜谱区域 */}
+      <div
+        style={{
+          marginTop: '20px',
+          padding: '16px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '6px',
+          border: '1px solid #e0e0e0',
+        }}
+      >
+        <h4 style={{ margin: '0 0 12px 0', color: '#333' }}>💬 继续优化菜谱</h4>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => onOptimizeRecipe('简化一下制作步骤')}
+            disabled={isOptimizing}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: isOptimizing ? '#ccc' : '#17a2b8',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isOptimizing ? 'not-allowed' : 'pointer',
+              fontSize: '12px',
+            }}
+          >
+            简化步骤
+          </button>
+          <button
+            onClick={() => onOptimizeRecipe('增加一些蔬菜')}
+            disabled={isOptimizing}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: isOptimizing ? '#ccc' : '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isOptimizing ? 'not-allowed' : 'pointer',
+              fontSize: '12px',
+            }}
+          >
+            增加蔬菜
+          </button>
+          <button
+            onClick={() => onOptimizeRecipe('改成更健康的做法')}
+            disabled={isOptimizing}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: isOptimizing ? '#ccc' : '#fd7e14',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isOptimizing ? 'not-allowed' : 'pointer',
+              fontSize: '12px',
+            }}
+          >
+            更健康
+          </button>
+          <button
+            onClick={() => onOptimizeRecipe('调整成素食版本')}
+            disabled={isOptimizing}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: isOptimizing ? '#ccc' : '#6f42c1',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isOptimizing ? 'not-allowed' : 'pointer',
+              fontSize: '12px',
+            }}
+          >
+            素食版本
+          </button>
+        </div>
+        {isOptimizing && (
+          <p
+            style={{
+              margin: '8px 0 0 0',
+              fontSize: '12px',
+              color: '#6c757d',
+              fontStyle: 'italic',
+            }}
+          >
+            🤖 AI 正在优化菜谱...
+          </p>
+        )}
+      </div>
     </div>
   );
 }

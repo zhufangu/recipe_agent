@@ -10,6 +10,7 @@ from parser import RecipeRequirementsParser
 from generator import RecipeGenerator
 from image_generator import QwenImageGenerator
 from ingredient_analyzer import IngredientAnalyzer
+from recipe_optimizer import RecipeOptimizer
 
 load_dotenv()
 
@@ -34,12 +35,19 @@ class RecipeRequest(BaseModel):
     description: str
 
 
+class RecipeOptimizeRequest(BaseModel):
+    current_recipe: Dict[str, Any]
+    user_request: str
+    conversation_history: list = []
+
+
 # 在API函数外创建解析器的实例,初始化所有AI组件
 # 这样应用启动时就创建好了，不用每次请求都重新创建一个，效率更高
 parser = RecipeRequirementsParser()
 generator = RecipeGenerator()
 image_generator = QwenImageGenerator()
 ingredient_analyzer = IngredientAnalyzer()
+recipe_optimizer = RecipeOptimizer()
 
 
 @app.post("/api/v1/recipes/generate")
@@ -149,4 +157,45 @@ async def analyze_ingredients_from_image(file: UploadFile = File(...)):
 
     except Exception as e:
         print(f"❌ 处理图片时发生错误: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/recipes/optimize")
+async def optimize_recipe(request: RecipeOptimizeRequest):
+    """
+    优化现有菜谱的API端点
+    """
+    current_recipe = request.current_recipe
+    user_request = request.user_request
+    conversation_history = request.conversation_history
+
+    print(f"收到菜谱优化请求:")
+    print(f"  当前菜谱: {current_recipe.get('dish_name', '未知')}")
+    print(f"  用户需求: {user_request}")
+    print(f"  对话历史: {len(conversation_history)} 条消息")
+
+    try:
+        print("🔧 正在优化菜谱...")
+        result = recipe_optimizer.optimize_recipe(
+            current_recipe=current_recipe,
+            user_request=user_request,
+            conversation_history=conversation_history,
+        )
+
+        # 检查是否是非菜谱话题的提醒
+        if result.get("type") == "off_topic_reminder":
+            print(f"⚠️ 检测到非菜谱话题，返回提醒: {result.get('message', '')}")
+            return {
+                "type": "off_topic_reminder",
+                "message": result.get("message", "请专注于菜谱优化相关的话题。"),
+            }
+
+        print(f"✅ 菜谱优化完成！新菜品: {result.get('dish_name', '未知')}")
+        return result
+
+    except ValueError as ve:
+        print(f"❌ 优化菜谱时发生参数错误: {str(ve)}")
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"❌ 优化菜谱时发生错误: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
