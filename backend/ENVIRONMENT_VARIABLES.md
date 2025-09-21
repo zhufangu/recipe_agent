@@ -23,7 +23,7 @@
 
 - `FRONTEND_URL` - 前端应用的主 URL
   - 开发环境: `http://localhost:3000`
-  - 生产环境: `https://your-frontend-domain.vercel.app`
+  - 生产环境: `https://kaifan.vercel.app`
 
 ### 3. 额外 CORS 源
 
@@ -47,7 +47,7 @@ FRONTEND_URL=http://localhost:3000
 ENVIRONMENT=production
 OPENAI_API_KEY=your_openai_key
 DASHSCOPE_API_KEY=your_dashscope_key
-FRONTEND_URL=https://recipe-agent-two.vercel.app
+FRONTEND_URL=https://kaifan.vercel.app
 CORS_ORIGINS=https://backup-domain.vercel.app,https://staging.vercel.app
 ```
 
@@ -79,4 +79,4 @@ CORS_ORIGINS=https://backup-domain.vercel.app,https://staging.vercel.app
 1. 进入项目设置
 2. 找到 "Environment Variables"
 3. 添加上述环境变量
-4. 确保 `FRONTEND_URL` 指向你的 Vercel 域名
+4. 确保 `FRONTEND_URL` 指向你的 Vercel 域名 (https://kaifan.vercel.app)
