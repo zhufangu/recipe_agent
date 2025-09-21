@@ -2,6 +2,7 @@
 import { useAppDispatch } from '../contexts/AppContext';
 import { IngredientAnalysisResult } from '../types';
 import { useProgress } from './useProgress';
+import { INGREDIENT_ANALYZE_URL } from '../config/api';
 
 export function useImageRecognition() {
   const dispatch = useAppDispatch();
@@ -22,13 +23,10 @@ export function useImageRecognition() {
     formData.append('file', file);
 
     try {
-      const response = await fetch(
-        'http://127.0.0.1:8000/api/v1/ingredients/analyze',
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
+      const response = await fetch(INGREDIENT_ANALYZE_URL, {
+        method: 'POST',
+        body: formData,
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

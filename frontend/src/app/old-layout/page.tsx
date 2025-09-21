@@ -7,6 +7,7 @@ import { useRecipe } from '../../hooks/useRecipe';
 import { useImageRecognition } from '../../hooks/useImageRecognition';
 import { useChat } from '../../hooks/useChat';
 import { TabType } from '../../types/appState';
+import { INTENT_ANALYZE_URL } from '../../config/api';
 
 export default function Home() {
   const state = useAppState();
@@ -74,18 +75,15 @@ export default function Home() {
   // 智能判断是否为菜谱需求
   const isRecipeRequest = async (message: string): Promise<boolean> => {
     try {
-      const response = await fetch(
-        'http://127.0.0.1:8000/api/v1/intent/analyze',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: message,
-          }),
-        }
-      );
+      const response = await fetch(INTENT_ANALYZE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+        }),
+      });
 
       if (!response.ok) {
         // API 调用失败时使用关键词兜底

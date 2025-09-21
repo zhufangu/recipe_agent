@@ -3,6 +3,11 @@ import { useAppDispatch } from '../contexts/AppContext';
 import { TabType } from '../types/appState';
 import { Recipe, ChatMessage } from '../types';
 import { useProgress } from './useProgress';
+import {
+  RECIPE_GENERATE_URL,
+  RECIPE_OPTIMIZE_URL,
+  RECIPE_GENERATE_IMAGE_URL,
+} from '../config/api';
 
 export function useRecipe() {
   const dispatch = useAppDispatch();
@@ -16,16 +21,13 @@ export function useRecipe() {
     const progressPromise = simulateProgress('正在生成菜谱...', 'recipe', 4000);
 
     try {
-      const response = await fetch(
-        'http://127.0.0.1:8000/api/v1/recipes/generate',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ description }),
-        }
-      );
+      const response = await fetch(RECIPE_GENERATE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ description }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -80,20 +82,17 @@ export function useRecipe() {
         content: msg.content,
       }));
 
-      const response = await fetch(
-        'http://127.0.0.1:8000/api/v1/recipes/optimize',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            current_recipe: currentRecipe,
-            user_request: userRequest,
-            conversation_history: historyData,
-          }),
-        }
-      );
+      const response = await fetch(RECIPE_OPTIMIZE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          current_recipe: currentRecipe,
+          user_request: userRequest,
+          conversation_history: historyData,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -149,16 +148,13 @@ export function useRecipe() {
     );
 
     try {
-      const response = await fetch(
-        'http://127.0.0.1:8000/api/v1/recipes/generate-image',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ recipe_json: recipe }),
-        }
-      );
+      const response = await fetch(RECIPE_GENERATE_IMAGE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ recipe_json: recipe }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
