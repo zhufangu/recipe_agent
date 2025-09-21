@@ -8,6 +8,7 @@ import { useImageRecognition } from '../../hooks/useImageRecognition';
 import { useChat } from '../../hooks/useChat';
 import { TabType } from '../../types/appState';
 import { INTENT_ANALYZE_URL } from '../../config/api';
+import Link from 'next/link';
 
 export default function Home() {
   const state = useAppState();
@@ -262,7 +263,7 @@ export default function Home() {
           🍳 AI 智能菜谱生成器
         </h1>
         <div style={{ marginBottom: '20px' }}>
-          <a
+          <Link
             href="/"
             style={{
               display: 'inline-block',
@@ -277,7 +278,7 @@ export default function Home() {
             }}
           >
             🎨 体验现代化布局
-          </a>
+          </Link>
         </div>
       </div>
 

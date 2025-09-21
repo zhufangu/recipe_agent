@@ -72,10 +72,6 @@ export default function ModernTextInputTab({
                 fontFamily: 'inherit',
                 lineHeight: '1.5',
                 transition: 'border-color 0.2s',
-                ':focus': {
-                  borderColor: '#3b82f6',
-                  boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-                },
               }}
               placeholder="例如：我想用土豆和牛肉做一道简单的菜，半小时内完成，口味不要太重..."
             />

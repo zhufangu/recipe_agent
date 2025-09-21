@@ -646,10 +646,6 @@ export default function ModernRecipeCard({ recipe }: ModernRecipeCardProps) {
                   ? 'not-allowed'
                   : 'pointer',
                 transition: 'all 0.2s',
-                ':hover': {
-                  backgroundColor: '#f1f5f9',
-                  borderColor: '#cbd5e1',
-                },
               }}
             >
               {text}
