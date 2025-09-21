@@ -1,9 +1,9 @@
 // 智能 RecipeCard 组件 - 使用 Context 直接访问状态和功能
 'use client';
-import { useAppState } from '../contexts/AppContext';
-import { useRecipe } from '../hooks/useRecipe';
-import { useChat } from '../hooks/useChat';
-import { Recipe } from '../types';
+import { useAppState } from '../../contexts/AppContext';
+import { useRecipe } from '../../hooks/useRecipe';
+import { useChat } from '../../hooks/useChat';
+import { Recipe } from '../../types';
 
 interface SmartRecipeCardProps {
   recipe: Recipe;

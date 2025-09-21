@@ -1,6 +1,6 @@
-import { ImageRecognitionTabProps } from '../types/componentProps';
-import ChatInterface from './ChatInterface';
-import IngredientManager from './IngredientManager';
+import { ImageRecognitionTabProps } from '../../types/componentProps';
+import ChatInterface from '../ChatInterface';
+import IngredientManager from '../IngredientManager';
 import SmartRecipeCard from './SmartRecipeCard';
 
 export default function ImageRecognitionTab({

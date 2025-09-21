@@ -1,5 +1,5 @@
-import { TextInputTabProps } from '../types/componentProps';
-import ChatInterface from './ChatInterface';
+import { TextInputTabProps } from '../../types/componentProps';
+import ChatInterface from '../ChatInterface';
 import SmartRecipeCard from './SmartRecipeCard';
 
 export default function TextInputTab({

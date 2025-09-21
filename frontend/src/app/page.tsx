@@ -1,14 +1,15 @@
 'use client';
-import ImageRecognitionTab from '../components/ImageRecognitionTab';
-import TextInputTab from '../components/TextInputTab';
-import ProgressBar from '../components/ProgressBar';
 import { useAppState, useAppDispatch } from '../contexts/AppContext';
 import { useRecipe } from '../hooks/useRecipe';
 import { useImageRecognition } from '../hooks/useImageRecognition';
 import { useChat } from '../hooks/useChat';
 import { TabType } from '../types/appState';
+import TabNavigation from '../components/shared/TabNavigation';
+import ModernTextInputTab from '../components/modern/ModernTextInputTab';
+import ModernImageRecognitionTab from '../components/modern/ModernImageRecognitionTab';
+import ProgressBar from '../components/ProgressBar';
 
-export default function Home() {
+export default function HomePage() {
   const state = useAppState();
   const dispatch = useAppDispatch();
 
@@ -245,109 +246,102 @@ export default function Home() {
   };
 
   return (
-    <main
+    <div
       style={{
-        padding: '20px',
-        maxWidth: '1000px',
-        margin: '0 auto',
         minHeight: '100vh',
+        backgroundColor: '#f8fafc',
+        paddingTop: '40px',
+        paddingBottom: '40px',
       }}
     >
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <h1
-          style={{
-            marginBottom: '16px',
-            fontSize: '2.5rem',
-            fontWeight: 'bold',
-          }}
-        >
-          🍳 AI 智能菜谱生成器
-        </h1>
-        <div style={{ marginBottom: '20px' }}>
-          <a
-            href="/new-layout"
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 20px' }}>
+        {/* 页面头部 */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <h1
             style={{
-              display: 'inline-block',
-              padding: '8px 16px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'background-color 0.2s',
+              fontSize: '3rem',
+              fontWeight: 'bold',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              marginBottom: '16px',
             }}
           >
-            🎨 体验现代化布局
-          </a>
+            🍳 AI 智能菜谱生成器
+          </h1>
+          <p
+            style={{
+              fontSize: '1.25rem',
+              color: '#6b7280',
+              maxWidth: '600px',
+              margin: '0 auto',
+            }}
+          >
+            现代化布局版本 - 让AI为您创造美味的菜谱体验
+          </p>
+        </div>
+
+        {/* Tab 导航 */}
+        <TabNavigation
+          activeTab={state.activeTab}
+          onTabChange={handleTabChange}
+          style="modern"
+        />
+
+        {/* Tab 内容 */}
+        <div>
+          {state.activeTab === 'text' && (
+            <ModernTextInputTab
+              state={state.tabs.text}
+              onInputChange={handleTextInputChange}
+              onSendMessage={handleTextTabSendMessage}
+              onGenerateRecipe={handleTextSubmit}
+            />
+          )}
+          {state.activeTab === 'image' && (
+            <ModernImageRecognitionTab
+              state={state.tabs.image}
+              onImageUpload={handleImageUpload}
+              onSendMessage={handleImageTabSendMessage}
+              onRemoveIngredient={removeIngredient}
+              onAddIngredient={addIngredient}
+              onGenerateRecipe={handleGenerateFromIngredients}
+            />
+          )}
+        </div>
+
+        {/* 全局进度条 */}
+        <ProgressBar
+          progress={state.ui.progressBar.progress}
+          message={state.ui.progressBar.message}
+          isVisible={state.ui.progressBar.isVisible}
+          variant={state.ui.progressBar.variant}
+        />
+
+        {/* 页面底部 */}
+        <div
+          style={{
+            textAlign: 'center',
+            marginTop: '60px',
+            padding: '20px',
+            color: '#9ca3af',
+            fontSize: '14px',
+          }}
+        >
+          <p>现代化布局 | 基于 Next.js + AI 技术</p>
+          <p style={{ marginTop: '8px' }}>
+            <a
+              href="/old-layout"
+              style={{
+                color: '#3b82f6',
+                textDecoration: 'none',
+              }}
+            >
+              ← 返回经典版本
+            </a>
+          </p>
         </div>
       </div>
-
-      {/* Tab 导航 */}
-      <div className="tab-navigation">
-        <button
-          onClick={() => handleTabChange('text')}
-          className={state.activeTab === 'text' ? 'tab-active' : 'tab-inactive'}
-          style={{
-            padding: '12px 24px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: '500',
-            borderRadius: '8px 8px 0 0',
-            transition: 'all 0.3s ease',
-          }}
-        >
-          📝 文字描述
-        </button>
-        <button
-          onClick={() => handleTabChange('image')}
-          className={
-            state.activeTab === 'image' ? 'tab-active' : 'tab-inactive'
-          }
-          style={{
-            padding: '12px 24px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: '500',
-            borderRadius: '8px 8px 0 0',
-            transition: 'all 0.3s ease',
-          }}
-        >
-          📷 图片识别
-        </button>
-      </div>
-
-      {/* Tab 内容 */}
-      <div className="tab-content">
-        {state.activeTab === 'text' && (
-          <TextInputTab
-            state={state.tabs.text}
-            onInputChange={handleTextInputChange}
-            onSendMessage={handleTextTabSendMessage}
-            onGenerateRecipe={handleTextSubmit}
-          />
-        )}
-        {state.activeTab === 'image' && (
-          <ImageRecognitionTab
-            state={state.tabs.image}
-            onImageUpload={handleImageUpload}
-            onSendMessage={handleImageTabSendMessage}
-            onRemoveIngredient={removeIngredient}
-            onAddIngredient={addIngredient}
-            onGenerateRecipe={handleGenerateFromIngredients}
-          />
-        )}
-      </div>
-
-      {/* 全局进度条 */}
-      <ProgressBar
-        progress={state.ui.progressBar.progress}
-        message={state.ui.progressBar.message}
-        isVisible={state.ui.progressBar.isVisible}
-        variant={state.ui.progressBar.variant}
-      />
-    </main>
+    </div>
   );
 }
