@@ -296,11 +296,11 @@ export default function ModernRecipeCard({ recipe }: ModernRecipeCardProps) {
         </div>
       </div>
 
-      {/* 食材+步骤 并排布局 */}
+      {/* 食材+步骤 响应式布局 */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '2fr 3fr',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: '24px',
           marginBottom: '24px',
         }}
