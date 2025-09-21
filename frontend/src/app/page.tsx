@@ -1,417 +1,246 @@
 'use client';
-import { useState } from 'react';
 import ImageRecognitionTab from '../components/ImageRecognitionTab';
 import TextInputTab from '../components/TextInputTab';
-import {
-  Recipe,
-  IngredientAnalysisResult,
-  ChatMessage,
-  ImageTabState,
-  TextTabState,
-} from '../types';
-
-type TabType = 'image' | 'text';
+import ProgressBar from '../components/ProgressBar';
+import { useAppState, useAppDispatch } from '../contexts/AppContext';
+import { useRecipe } from '../hooks/useRecipe';
+import { useImageRecognition } from '../hooks/useImageRecognition';
+import { useChat } from '../hooks/useChat';
+import { TabType } from '../types/appState';
 
 export default function Home() {
-  // 使用单一通用主题，不再需要主题状态
+  const state = useAppState();
+  const dispatch = useAppDispatch();
 
-  // Tab 状态
-  const [activeTab, setActiveTab] = useState<TabType>('text');
+  // 使用自定义 Hooks
+  const { generateRecipe, optimizeRecipe } = useRecipe();
+  const { analyzeImage, addIngredient, removeIngredient } =
+    useImageRecognition();
+  const { addUserMessage, addDelayedAIMessage } = useChat();
 
-  // 图片识别 Tab 状态
-  const [imageTabState, setImageTabState] = useState<ImageTabState>({
-    conversation: [],
-    recipe: null,
-    isGenerating: false,
-    error: null,
-    identifiedIngredients: [],
-    isAnalyzing: false,
-    analysisError: null,
-  });
-
-  // 文字输入 Tab 状态
-  const [textTabState, setTextTabState] = useState<TextTabState>({
-    conversation: [],
-    recipe: null,
-    isGenerating: false,
-    error: null,
-    userInput: '',
-  });
-
-  // 图片生成相关状态
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [imageError, setImageError] = useState<string | null>(null);
-
-  // 添加消息到对话历史
-  const addMessage = (
-    tabType: TabType,
-    role: 'user' | 'ai',
-    content: string
-  ) => {
-    const message: ChatMessage = {
-      id: Date.now().toString(),
-      role,
-      content,
-      timestamp: new Date(),
-    };
-
-    if (tabType === 'image') {
-      setImageTabState((prev) => ({
-        ...prev,
-        conversation: [...prev.conversation, message],
-      }));
-    } else {
-      setTextTabState((prev) => ({
-        ...prev,
-        conversation: [...prev.conversation, message],
-      }));
-    }
+  // Tab 切换
+  const handleTabChange = (tab: TabType) => {
+    dispatch({ type: 'SET_ACTIVE_TAB', payload: tab });
   };
 
-  // 统一的菜谱生成函数
-  const generateRecipe = async (description: string, tabType: TabType) => {
-    if (tabType === 'image') {
-      setImageTabState((prev) => ({
-        ...prev,
-        isGenerating: true,
-        error: null,
-      }));
-    } else {
-      setTextTabState((prev) => ({ ...prev, isGenerating: true, error: null }));
-    }
+  // 文字输入处理
+  const handleTextInputChange = (input: string) => {
+    dispatch({ type: 'UPDATE_TEXT_INPUT', payload: { input } });
+  };
+
+  // 文字 Tab 生成菜谱
+  const handleTextSubmit = async () => {
+    const userInput = state.tabs.text.userInput.trim();
+    if (!userInput) return;
 
     try {
-      const response = await fetch(
-        'http://127.0.0.1:8000/api/v1/recipes/generate',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ description }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data: Recipe = await response.json();
-
-      if (tabType === 'image') {
-        setImageTabState((prev) => ({
-          ...prev,
-          recipe: data,
-          isGenerating: false,
-          error: null,
-        }));
-      } else {
-        setTextTabState((prev) => ({
-          ...prev,
-          recipe: data,
-          isGenerating: false,
-          error: null,
-        }));
-      }
-    } catch (error) {
-      console.error('生成菜谱错误:', error);
-      if (tabType === 'image') {
-        setImageTabState((prev) => ({
-          ...prev,
-          isGenerating: false,
-          error:
-            '生成菜谱失败，请检查后端服务是否开启，或查看浏览器控制台获取更多信息。',
-        }));
-      } else {
-        setTextTabState((prev) => ({
-          ...prev,
-          isGenerating: false,
-          error:
-            '生成菜谱失败，请检查后端服务是否开启，或查看浏览器控制台获取更多信息。',
-        }));
-      }
+      await generateRecipe(userInput, 'text');
+    } catch {
+      // 错误已在 useRecipe 中处理
     }
   };
 
-  // 图片识别相关函数
+  // 图片上传处理
   const handleImageUpload = async (file: File) => {
-    setImageTabState((prev) => ({
-      ...prev,
-      isAnalyzing: true,
-      analysisError: null,
-      identifiedIngredients: [],
-    }));
-
-    const formData = new FormData();
-    formData.append('image', file);
-
     try {
-      const response = await fetch(
-        'http://127.0.0.1:8000/api/v1/ingredients/analyze',
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result: IngredientAnalysisResult = await response.json();
-
-      if (result.success) {
-        setImageTabState((prev) => ({
-          ...prev,
-          identifiedIngredients: result.ingredients,
-          isAnalyzing: false,
-          analysisError: null,
-        }));
-      } else {
-        throw new Error('分析失败');
-      }
-    } catch (error) {
-      console.error('图片识别错误:', error);
-      setImageTabState((prev) => ({
-        ...prev,
-        isAnalyzing: false,
-        analysisError:
-          '图片识别失败，请检查后端服务是否开启，或查看浏览器控制台获取更多信息。',
-      }));
-    }
-  };
-
-  // 管理识别的食材
-  const handleRemoveIngredient = (ingredient: string) => {
-    setImageTabState((prev) => ({
-      ...prev,
-      identifiedIngredients: prev.identifiedIngredients.filter(
-        (item) => item !== ingredient
-      ),
-    }));
-  };
-
-  const handleAddIngredient = (ingredient: string) => {
-    if (
-      ingredient.trim() &&
-      !imageTabState.identifiedIngredients.includes(ingredient.trim())
-    ) {
-      setImageTabState((prev) => ({
-        ...prev,
-        identifiedIngredients: [
-          ...prev.identifiedIngredients,
-          ingredient.trim(),
-        ],
-      }));
+      await analyzeImage(file);
+    } catch {
+      // 错误已在 useImageRecognition 中处理
     }
   };
 
   // 从识别的食材生成菜谱
-  const handleGenerateFromIngredients = () => {
-    if (imageTabState.identifiedIngredients.length === 0) {
-      setImageTabState((prev) => ({
-        ...prev,
-        error: '请先识别或添加一些食材',
-      }));
+  const handleGenerateFromIngredients = async () => {
+    const ingredients = state.tabs.image.identifiedIngredients;
+    if (ingredients.length === 0) {
+      dispatch({
+        type: 'RECIPE_GENERATION_ERROR',
+        payload: { tab: 'image', error: '请先识别或添加一些食材' },
+      });
       return;
     }
 
-    const description = `我有这些食材：${imageTabState.identifiedIngredients.join(
+    const description = `我有这些食材：${ingredients.join(
       '、'
     )}，请帮我生成一道菜谱。`;
-    generateRecipe(description, 'image');
-  };
-
-  // 文字输入相关函数
-  const handleInputChange = (input: string) => {
-    setTextTabState((prev) => ({ ...prev, userInput: input }));
-  };
-
-  const handleTextSubmit = () => {
-    if (!textTabState.userInput.trim()) return;
-    generateRecipe(textTabState.userInput.trim(), 'text');
-  };
-
-  // 对话相关函数
-  const handleTextTabSendMessage = (message: string) => {
-    addMessage('text', 'user', message);
-    // 这里可以添加更多对话逻辑
-    setTimeout(() => {
-      addMessage('text', 'ai', '我已经收到您的消息，请稍等...');
-    }, 500);
-  };
-
-  const handleImageTabSendMessage = (message: string) => {
-    addMessage('image', 'user', message);
-    // 这里可以添加更多对话逻辑
-    setTimeout(() => {
-      addMessage('image', 'ai', '我已经收到您的消息，请稍等...');
-    }, 500);
-  };
-
-  // 图片生成功能
-  const handleGenerateImage = async () => {
-    const currentRecipe =
-      activeTab === 'image' ? imageTabState.recipe : textTabState.recipe;
-    if (!currentRecipe) return;
-
-    setIsGeneratingImage(true);
-    setImageError(null);
 
     try {
-      const response = await fetch(
-        'http://127.0.0.1:8000/api/v1/recipes/generate-image',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ recipe_json: currentRecipe }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      const imageUrl = result.image_url;
-
-      // 更新当前活跃tab的recipe的image_url
-      if (activeTab === 'image') {
-        setImageTabState((prev) => ({
-          ...prev,
-          recipe: prev.recipe ? { ...prev.recipe, image_url: imageUrl } : null,
-        }));
-      } else {
-        setTextTabState((prev) => ({
-          ...prev,
-          recipe: prev.recipe ? { ...prev.recipe, image_url: imageUrl } : null,
-        }));
-      }
-    } catch (error) {
-      console.error('生成图片错误:', error);
-      setImageError('生成图片失败，请稍后重试。');
-    } finally {
-      setIsGeneratingImage(false);
+      await generateRecipe(description, 'image');
+    } catch {
+      // 错误已在 useRecipe 中处理
     }
   };
 
-  // 菜谱优化功能
-  const handleOptimizeRecipe = async (message: string, tabType: TabType) => {
-    const currentState = tabType === 'image' ? imageTabState : textTabState;
-    if (!currentState.recipe) return;
-
-    addMessage(tabType, 'user', message);
-
-    if (tabType === 'image') {
-      setImageTabState((prev) => ({
-        ...prev,
-        isGenerating: true,
-        error: null,
-      }));
-    } else {
-      setTextTabState((prev) => ({ ...prev, isGenerating: true, error: null }));
-    }
-
+  // 智能判断是否为菜谱需求
+  const isRecipeRequest = async (message: string): Promise<boolean> => {
     try {
-      // 准备对话历史数据
-      const conversationHistory = currentState.conversation.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
-
       const response = await fetch(
-        'http://127.0.0.1:8000/api/v1/recipes/optimize',
+        'http://127.0.0.1:8000/api/v1/intent/analyze',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            current_recipe: currentState.recipe,
-            user_request: message,
-            conversation_history: conversationHistory,
+            message: message,
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // API 调用失败时使用关键词兜底
+        return isRecipeRequestFallback(message);
       }
 
       const result = await response.json();
-
-      // 检查是否是非菜谱话题的提醒
-      if (result.type === 'off_topic_reminder') {
-        if (tabType === 'image') {
-          setImageTabState((prev) => ({
-            ...prev,
-            isGenerating: false,
-            error: null,
-          }));
-        } else {
-          setTextTabState((prev) => ({
-            ...prev,
-            isGenerating: false,
-            error: null,
-          }));
-        }
-
-        // 添加 AI 的提醒回复
-        setTimeout(() => {
-          addMessage(tabType, 'ai', result.message);
-        }, 500);
-        return;
-      }
-
-      // 正常的菜谱优化结果
-      const optimizedRecipe: Recipe = result;
-
-      if (tabType === 'image') {
-        setImageTabState((prev) => ({
-          ...prev,
-          recipe: optimizedRecipe,
-          isGenerating: false,
-          error: null,
-        }));
-      } else {
-        setTextTabState((prev) => ({
-          ...prev,
-          recipe: optimizedRecipe,
-          isGenerating: false,
-          error: null,
-        }));
-      }
-
-      // 添加 AI 的成功回复
-      setTimeout(() => {
-        addMessage(
-          tabType,
-          'ai',
-          `我已经根据您的需求"${message}"优化了菜谱。新的菜谱已经体现了您要求的改进。`
-        );
-      }, 500);
+      return result.is_recipe_request || false;
     } catch (error) {
-      console.error('优化菜谱错误:', error);
-      if (tabType === 'image') {
-        setImageTabState((prev) => ({
-          ...prev,
-          isGenerating: false,
-          error: '优化菜谱失败，请稍后重试。',
-        }));
-      } else {
-        setTextTabState((prev) => ({
-          ...prev,
-          isGenerating: false,
-          error: '优化菜谱失败，请稍后重试。',
-        }));
-      }
+      console.error('意图识别失败，使用关键词兜底:', error);
+      return isRecipeRequestFallback(message);
+    }
+  };
 
-      // 添加错误回复
-      setTimeout(() => {
-        addMessage(tabType, 'ai', '抱歉，优化菜谱时遇到了问题，请稍后重试。');
-      }, 500);
+  // 关键词兜底方案
+  const isRecipeRequestFallback = (message: string): boolean => {
+    const recipePatterns = [
+      // 直接表达做菜意图
+      /我想(做|煮|炒|蒸|烤|炸)/,
+      /想要(做|煮|炒|蒸|烤|炸)/,
+      /帮我(做|煮|炒|蒸|烤|炸)/,
+
+      // 食材 + 动作
+      /(用|有).*(做|煮|炒|蒸|烤|炸|料理)/,
+      /(做|煮|炒|蒸|烤|炸|料理).*(菜|dish)/,
+
+      // 时间限制的菜谱需求
+      /\d+分钟.*(菜|dish|完成)/,
+      /半小时.*(菜|dish|完成)/,
+      /一小时.*(菜|dish|完成)/,
+
+      // 冰箱/食材描述
+      /冰箱里有/,
+      /家里有.*(想做|做)/,
+      /这些食材/,
+
+      // 菜系/口味需求
+      /(中式|西式|日式|韩式|川菜|粤菜).*(菜|dish)/,
+      /(简单|快手|营养|健康|低脂).*(菜|dish)/,
+    ];
+
+    return recipePatterns.some((pattern) => pattern.test(message));
+  };
+
+  // 对话处理 - 文字 Tab
+  const handleTextTabSendMessage = async (message: string) => {
+    addUserMessage('text', message);
+
+    if (state.tabs.text.recipe) {
+      // 如果已有菜谱，则进行优化
+      try {
+        const result = await optimizeRecipe(
+          state.tabs.text.recipe,
+          message,
+          state.tabs.text.conversation,
+          'text'
+        );
+
+        if (result.type === 'off_topic_reminder') {
+          addDelayedAIMessage('text', result.message);
+        } else if (result.type === 'success') {
+          addDelayedAIMessage(
+            'text',
+            `我已经根据您的需求"${message}"优化了菜谱。新的菜谱已经体现了您要求的改进。`
+          );
+        }
+      } catch {
+        addDelayedAIMessage('text', '抱歉，优化菜谱时遇到了问题，请稍后重试。');
+      }
+    } else {
+      // 如果没有菜谱，智能判断用户意图
+      const seemsLikeRecipeRequest = await isRecipeRequest(message);
+
+      if (seemsLikeRecipeRequest) {
+        // 看起来像菜谱需求，自动生成菜谱
+        addDelayedAIMessage('text', '我来为您生成菜谱...');
+        try {
+          await generateRecipe(message, 'text');
+        } catch (error) {
+          console.error('自动生成菜谱失败:', error);
+          addDelayedAIMessage(
+            'text',
+            '抱歉，生成菜谱时遇到了问题。您也可以点击下方的"生成菜谱"按钮重试。'
+          );
+        }
+      } else {
+        // 普通对话
+        addDelayedAIMessage(
+          'text',
+          '我已经收到您的消息。如果您想生成菜谱，请告诉我您的食材和需求，或点击"生成菜谱"按钮。'
+        );
+      }
+    }
+  };
+
+  // 对话处理 - 图片 Tab
+  const handleImageTabSendMessage = async (message: string) => {
+    addUserMessage('image', message);
+
+    if (state.tabs.image.recipe) {
+      // 如果已有菜谱，则进行优化
+      try {
+        const result = await optimizeRecipe(
+          state.tabs.image.recipe,
+          message,
+          state.tabs.image.conversation,
+          'image'
+        );
+
+        if (result.type === 'off_topic_reminder') {
+          addDelayedAIMessage('image', result.message);
+        } else if (result.type === 'success') {
+          addDelayedAIMessage(
+            'image',
+            `我已经根据您的需求"${message}"优化了菜谱。新的菜谱已经体现了您要求的改进。`
+          );
+        }
+      } catch {
+        addDelayedAIMessage(
+          'image',
+          '抱歉，优化菜谱时遇到了问题，请稍后重试。'
+        );
+      }
+    } else {
+      // 如果没有菜谱，智能判断用户意图
+      const seemsLikeRecipeRequest = await isRecipeRequest(message);
+
+      if (seemsLikeRecipeRequest) {
+        // 看起来像菜谱需求，检查是否有识别的食材
+        if (state.tabs.image.identifiedIngredients.length > 0) {
+          // 有识别的食材，自动生成菜谱
+          addDelayedAIMessage('image', '我来为您生成菜谱...');
+          try {
+            await handleGenerateFromIngredients();
+          } catch (error) {
+            console.error('自动生成菜谱失败:', error);
+            addDelayedAIMessage(
+              'image',
+              '抱歉，生成菜谱时遇到了问题。您也可以点击下方的"生成菜谱"按钮重试。'
+            );
+          }
+        } else {
+          // 没有识别的食材，提醒用户先上传图片
+          addDelayedAIMessage(
+            'image',
+            '请先上传一张包含食材的图片，我来帮您识别食材并生成菜谱。'
+          );
+        }
+      } else {
+        // 普通对话
+        addDelayedAIMessage(
+          'image',
+          '我已经收到您的消息。如果您想生成菜谱，请告诉我您的需求，或点击"生成菜谱"按钮。'
+        );
+      }
     }
   };
 
@@ -438,8 +267,8 @@ export default function Home() {
       {/* Tab 导航 */}
       <div className="tab-navigation">
         <button
-          onClick={() => setActiveTab('text')}
-          className={activeTab === 'text' ? 'tab-active' : 'tab-inactive'}
+          onClick={() => handleTabChange('text')}
+          className={state.activeTab === 'text' ? 'tab-active' : 'tab-inactive'}
           style={{
             padding: '12px 24px',
             border: 'none',
@@ -453,8 +282,10 @@ export default function Home() {
           📝 文字描述
         </button>
         <button
-          onClick={() => setActiveTab('image')}
-          className={activeTab === 'image' ? 'tab-active' : 'tab-inactive'}
+          onClick={() => handleTabChange('image')}
+          className={
+            state.activeTab === 'image' ? 'tab-active' : 'tab-inactive'
+          }
           style={{
             padding: '12px 24px',
             border: 'none',
@@ -471,47 +302,33 @@ export default function Home() {
 
       {/* Tab 内容 */}
       <div className="tab-content">
-        {activeTab === 'text' && (
+        {state.activeTab === 'text' && (
           <TextInputTab
-            state={textTabState}
-            onInputChange={handleInputChange}
-            onSendMessage={(message) => {
-              if (textTabState.recipe) {
-                // 如果已有菜谱，则进行优化
-                handleOptimizeRecipe(message, 'text');
-              } else {
-                // 如果没有菜谱，则正常对话
-                handleTextTabSendMessage(message);
-              }
-            }}
+            state={state.tabs.text}
+            onInputChange={handleTextInputChange}
+            onSendMessage={handleTextTabSendMessage}
             onGenerateRecipe={handleTextSubmit}
-            onGenerateImage={handleGenerateImage}
-            isGeneratingImage={isGeneratingImage}
-            imageError={imageError}
           />
         )}
-        {activeTab === 'image' && (
+        {state.activeTab === 'image' && (
           <ImageRecognitionTab
-            state={imageTabState}
+            state={state.tabs.image}
             onImageUpload={handleImageUpload}
-            onSendMessage={(message) => {
-              if (imageTabState.recipe) {
-                // 如果已有菜谱，则进行优化
-                handleOptimizeRecipe(message, 'image');
-              } else {
-                // 如果没有菜谱，则正常对话
-                handleImageTabSendMessage(message);
-              }
-            }}
-            onRemoveIngredient={handleRemoveIngredient}
-            onAddIngredient={handleAddIngredient}
+            onSendMessage={handleImageTabSendMessage}
+            onRemoveIngredient={removeIngredient}
+            onAddIngredient={addIngredient}
             onGenerateRecipe={handleGenerateFromIngredients}
-            onGenerateImage={handleGenerateImage}
-            isGeneratingImage={isGeneratingImage}
-            imageError={imageError}
           />
         )}
       </div>
+
+      {/* 全局进度条 */}
+      <ProgressBar
+        progress={state.ui.progressBar.progress}
+        message={state.ui.progressBar.message}
+        isVisible={state.ui.progressBar.isVisible}
+        variant={state.ui.progressBar.variant}
+      />
     </main>
   );
 }

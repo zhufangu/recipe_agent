@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChatInterfaceProps, ChatMessage } from '../types';
+import { ChatInterfaceProps } from '../types';
 
 export default function ChatInterface({
   messages,

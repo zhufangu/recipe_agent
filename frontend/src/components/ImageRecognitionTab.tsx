@@ -1,7 +1,7 @@
-import { ImageRecognitionTabProps } from '../types';
+import { ImageRecognitionTabProps } from '../types/componentProps';
 import ChatInterface from './ChatInterface';
 import IngredientManager from './IngredientManager';
-import RecipeCard from './RecipeCard';
+import SmartRecipeCard from './SmartRecipeCard';
 
 export default function ImageRecognitionTab({
   state,
@@ -10,9 +10,6 @@ export default function ImageRecognitionTab({
   onRemoveIngredient,
   onAddIngredient,
   onGenerateRecipe,
-  onGenerateImage,
-  isGeneratingImage = false,
-  imageError,
 }: ImageRecognitionTabProps) {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -129,16 +126,7 @@ export default function ImageRecognitionTab({
       {state.recipe && (
         <div>
           <h4 style={{ margin: '0 0 12px 0', color: '#333' }}>📋 生成的菜谱</h4>
-          <RecipeCard
-            recipe={state.recipe}
-            onGenerateImage={() => {
-              if (onGenerateImage) onGenerateImage();
-            }}
-            isGeneratingImage={isGeneratingImage}
-            imageError={imageError}
-            onOptimizeRecipe={onSendMessage}
-            isOptimizing={state.isGenerating}
-          />
+          <SmartRecipeCard recipe={state.recipe} />
         </div>
       )}
     </div>

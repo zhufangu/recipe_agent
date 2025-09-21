@@ -1,15 +1,12 @@
-import { TextInputTabProps } from '../types';
+import { TextInputTabProps } from '../types/componentProps';
 import ChatInterface from './ChatInterface';
-import RecipeCard from './RecipeCard';
+import SmartRecipeCard from './SmartRecipeCard';
 
 export default function TextInputTab({
   state,
   onInputChange,
   onSendMessage,
   onGenerateRecipe,
-  onGenerateImage,
-  isGeneratingImage = false,
-  imageError,
 }: TextInputTabProps) {
   return (
     <div style={{ padding: '20px' }}>
@@ -139,16 +136,7 @@ export default function TextInputTab({
       {state.recipe && (
         <div>
           <h4 style={{ margin: '0 0 12px 0', color: '#333' }}>📋 生成的菜谱</h4>
-          <RecipeCard
-            recipe={state.recipe}
-            onGenerateImage={() => {
-              if (onGenerateImage) onGenerateImage();
-            }}
-            isGeneratingImage={isGeneratingImage}
-            imageError={imageError}
-            onOptimizeRecipe={onSendMessage}
-            isOptimizing={state.isGenerating}
-          />
+          <SmartRecipeCard recipe={state.recipe} />
         </div>
       )}
     </div>

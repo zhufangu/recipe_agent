@@ -41,6 +41,10 @@ class RecipeOptimizeRequest(BaseModel):
     conversation_history: list = []
 
 
+class IntentAnalysisRequest(BaseModel):
+    message: str
+
+
 # 在API函数外创建解析器的实例,初始化所有AI组件
 # 这样应用启动时就创建好了，不用每次请求都重新创建一个，效率更高
 parser = RecipeRequirementsParser()
@@ -72,7 +76,7 @@ async def generate_recipe(request: RecipeRequest):  # 👈 把模型作为类型
         # 调用解析器，解析用户需求
         print("🔍 正在解析您的需求...")
         requirements = parser.parse_requirements(user_description)
-        print(f"✅ 解析完成！识别到：")
+        print("✅ 解析完成！识别到：")
         print(f"   🥘 食材: {', '.join(requirements['ingredients'])}")
         print(f"   🕐 最大烹饪时间: {requirements['max_cook_time_mins']}分钟")
         print(f"   🍽️ 菜系: {requirements['cuisine_preference']}")
@@ -81,7 +85,7 @@ async def generate_recipe(request: RecipeRequest):  # 👈 把模型作为类型
         print(f"   🔥 热量偏好: {requirements['calorie_preference']}")
         print(f"   👥 份数: {requirements['serving_size']}人份")
 
-        # 4. 调用生成器，生成菜谱
+        # 调用生成器，生成菜谱
         print("👨‍🍳 正在生成菜谱...")
         recipe_json = generator.generate_recipe(
             ingredients=requirements["ingredients"],
@@ -112,7 +116,7 @@ async def generate_recipe_image(request: RecipeImageRequest):
     print(f"收到了图片生成请求，菜谱: {recipe_json.get('dish_name', '未知')}")
 
     try:
-        # 3. 调用图片生成器，生成菜品图片
+        # 调用图片生成器，生成菜品图片
         image_url = image_generator.generate_recipe_image(recipe_json)
         print(f"🎉 菜品图片生成完成！URL: {image_url}")
 
@@ -129,6 +133,8 @@ async def analyze_ingredients_from_image(file: UploadFile = File(...)):
     从上传的图片中识别食材
     """
     print(f"收到图片分析请求，文件名: {file.filename}")
+    print(f"文件类型: {file.content_type}")
+    print(f"文件大小: {file.size if hasattr(file, 'size') else '未知'} bytes")
 
     try:
         # 读取上传的图片文件
@@ -169,7 +175,7 @@ async def optimize_recipe(request: RecipeOptimizeRequest):
     user_request = request.user_request
     conversation_history = request.conversation_history
 
-    print(f"收到菜谱优化请求:")
+    print("收到菜谱优化请求:")
     print(f"  当前菜谱: {current_recipe.get('dish_name', '未知')}")
     print(f"  用户需求: {user_request}")
     print(f"  对话历史: {len(conversation_history)} 条消息")
@@ -199,3 +205,72 @@ async def optimize_recipe(request: RecipeOptimizeRequest):
     except Exception as e:
         print(f"❌ 优化菜谱时发生错误: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/intent/analyze")
+async def analyze_intent(request: IntentAnalysisRequest):
+    """
+    分析用户消息的意图，判断是否为菜谱生成需求
+    """
+    message = request.message
+    print(f"收到意图分析请求: {message}")
+
+    try:
+        print("🔍 正在分析用户意图...")
+        is_recipe_request = await _analyze_recipe_intent(message)
+
+        print(f"✅ 意图分析完成！是否为菜谱需求: {is_recipe_request}")
+        return {"is_recipe_request": is_recipe_request, "message": message}
+
+    except Exception as e:
+        print(f"❌ 意图分析时发生错误: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def _analyze_recipe_intent(message: str) -> bool:
+    """
+    使用 LLM 分析用户意图是否为菜谱生成需求
+    """
+    from openai import OpenAI
+    import os
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    system_prompt = """
+你是一个专门的意图识别助手。你的任务是判断用户的消息是否表达了"想要生成菜谱"的意图。
+
+菜谱生成意图包括：
+1. 明确表达想要做菜、烹饪的需求（如"我想做菜"、"帮我做个菜"）
+2. 提到食材并想要制作食物（如"我有土豆和牛肉，想做点什么"）
+3. 描述菜系、口味、时间等烹饪需求（如"想要一道简单的中式菜"、"半小时内完成的菜"）
+4. 询问特定食材的做法（如"土豆怎么做好吃"）
+5. 表达对特定菜品的制作需求（如"我想学做宫保鸡丁"）
+
+非菜谱生成意图包括：
+1. 一般性问候（如"你好"、"天气怎么样"）
+2. 询问其他信息（如"你是谁"、"你能做什么"）
+3. 与烹饪无关的话题（如"今天股市如何"、"推荐个电影"）
+
+请只回答 "是" 或 "否"，不要有其他内容。
+"""
+
+    user_prompt = f'用户消息："{message}"\n\n这个消息是否表达了菜谱生成的意图？'
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.1,
+            max_completion_tokens=10,
+        )
+
+        result = response.choices[0].message.content.strip()
+        return result == "是"
+
+    except Exception as e:
+        print(f"LLM 意图分析失败: {str(e)}")
+        # 如果 LLM 调用失败，返回 False，让前端使用关键词兜底
+        return False
