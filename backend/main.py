@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,10 +18,46 @@ load_dotenv()
 
 app = FastAPI()
 
+
+# 从环境变量获取CORS配置
+def get_cors_origins():
+    """从环境变量获取CORS允许的源"""
+    origins = []
+
+    # 本地开发环境
+    if os.getenv("ENVIRONMENT", "development") == "development":
+        origins.extend(
+            [
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:3001",
+            ]
+        )
+
+    # 生产环境 - 从环境变量读取
+    frontend_url = os.getenv("FRONTEND_URL")
+    if frontend_url:
+        origins.append(frontend_url)
+
+    # 额外的CORS源（用逗号分隔）
+    extra_origins = os.getenv("CORS_ORIGINS", "")
+    if extra_origins:
+        origins.extend(
+            [origin.strip() for origin in extra_origins.split(",") if origin.strip()]
+        )
+
+    # 如果没有配置任何源，使用默认值
+    if not origins:
+        origins = ["http://localhost:3000"]
+
+    return origins
+
+
 # 添加CORS中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # 允许你的Next.js前端访问
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
