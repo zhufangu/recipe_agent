@@ -407,7 +407,7 @@ export default function ModernRecipeCard({ recipe }: ModernRecipeCardProps) {
               >
                 <div
                   style={{
-                    backgroundColor: '#3b82f6',
+                    backgroundColor: '##ffedd4',
                     color: 'white',
                     width: '28px',
                     height: '28px',
