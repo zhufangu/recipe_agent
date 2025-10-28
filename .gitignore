@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+
+# Lambda deployment artifacts
+backend/package/
+backend/lambda-deployment.zip
+*.zip
