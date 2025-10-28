@@ -1,22 +1,60 @@
 import os
+import time
+import logging
+import io
+from contextlib import asynccontextmanager
+from typing import Dict, Any
+
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from typing import Dict, Any
-import io
 
-# 导入所有需要的类
 from parser import RecipeRequirementsParser
 from generator import RecipeGenerator
 from image_generator import QwenImageGenerator
 from ingredient_analyzer import IngredientAnalyzer
 from recipe_optimizer import RecipeOptimizer
 
+# 配置日志记录器
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 
+# 记录应用启动时间
+STARTUP_TIME = time.time()
+logger.info("=" * 70)
+logger.info("🚀 [RENDER BASELINE] Starting Recipe Agent API...")
+logger.info(f"📍 Environment: {os.getenv('ENVIRONMENT', 'development')}")
 
-app = FastAPI()
+
+# 应用生命周期管理
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理 - 监控 Render 启动和关闭性能"""
+    lifespan_start = time.time()
+    logger.info("🔄 [RENDER] Lifespan startup phase beginning...")
+
+    # 记录组件初始化时间（组件已在全局初始化）
+    total_startup = time.time() - STARTUP_TIME
+    lifespan_time = time.time() - lifespan_start
+
+    logger.info(f"✅ [RENDER] Lifespan startup completed in {lifespan_time:.3f}s")
+    logger.info(f"✅ [RENDER] Total cold start time: {total_startup:.3f}s")
+    logger.info("=" * 70)
+
+    yield  # 应用运行中
+
+    # 关闭时的清理工作
+    logger.info("=" * 70)
+    logger.info("🛑 [RENDER] Application shutting down...")
+    logger.info("=" * 70)
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 # 从环境变量获取CORS配置
@@ -82,11 +120,33 @@ class IntentAnalysisRequest(BaseModel):
 
 # 在API函数外创建解析器的实例,初始化所有AI组件
 # 这样应用启动时就创建好了，不用每次请求都重新创建一个，效率更高
+logger.info("🏗️  [RENDER] Starting component initialization...")
+components_init_start = time.time()
+
+parser_start = time.time()
 parser = RecipeRequirementsParser()
+logger.info(f"  ✓ Parser initialized in {time.time() - parser_start:.3f}s")
+
+generator_start = time.time()
 generator = RecipeGenerator()
+logger.info(f"  ✓ Generator initialized in {time.time() - generator_start:.3f}s")
+
+image_gen_start = time.time()
 image_generator = QwenImageGenerator()
+logger.info(f"  ✓ Image Generator initialized in {time.time() - image_gen_start:.3f}s")
+
+analyzer_start = time.time()
 ingredient_analyzer = IngredientAnalyzer()
+logger.info(
+    f"  ✓ Ingredient Analyzer initialized in {time.time() - analyzer_start:.3f}s"
+)
+
+optimizer_start = time.time()
 recipe_optimizer = RecipeOptimizer()
+logger.info(f"  ✓ Recipe Optimizer initialized in {time.time() - optimizer_start:.3f}s")
+
+total_init_time = time.time() - components_init_start
+logger.info(f"🎉 [RENDER] All components initialized in {total_init_time:.3f}s")
 
 
 @app.post("/api/v1/recipes/generate")
@@ -309,3 +369,77 @@ async def _analyze_recipe_intent(message: str) -> bool:
         print(f"LLM 意图分析失败: {str(e)}")
         # 如果 LLM 调用失败，返回 False，让前端使用关键词兜底
         return False
+
+
+# ============================================================================
+# 性能监控和健康检查端点
+# ============================================================================
+
+
+@app.get("/")
+async def root():
+    """根路径 - API 欢迎信息"""
+    return {
+        "message": "Recipe Agent API - Render Baseline Version",
+        "version": "1.0.0-baseline",
+        "status": "running",
+        "docs": "/docs",
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """
+    健康检查端点 - 用于 Render 监控和保持服务活跃
+
+    返回：
+    - status: 服务状态
+    - uptime: 运行时间
+    - components: 各组件状态
+    """
+    uptime = time.time() - STARTUP_TIME
+    return {
+        "status": "healthy",
+        "timestamp": time.time(),
+        "uptime_seconds": round(uptime, 2),
+        "uptime_minutes": round(uptime / 60, 2),
+        "uptime_hours": round(uptime / 3600, 2),
+        "components": {
+            "parser": parser is not None,
+            "generator": generator is not None,
+            "image_generator": image_generator is not None,
+            "ingredient_analyzer": ingredient_analyzer is not None,
+            "recipe_optimizer": recipe_optimizer is not None,
+        },
+        "environment": os.getenv("ENVIRONMENT", "development"),
+        "version": "baseline",
+    }
+
+
+@app.get("/metrics")
+async def metrics():
+    """
+    性能指标端点 - 用于分析冷启动和响应时间
+
+    返回：
+    - startup_time: 启动耗时
+    - component_status: 各组件状态
+    - uptime: 运行时长
+    """
+    uptime = time.time() - STARTUP_TIME
+    return {
+        "startup_time_seconds": round(uptime if uptime < 60 else 0, 3),
+        "uptime_seconds": round(uptime, 2),
+        "uptime_readable": f"{int(uptime // 3600)}h {int((uptime % 3600) // 60)}m {int(uptime % 60)}s",
+        "component_status": {
+            "parser": "ready" if parser else "not_initialized",
+            "generator": "ready" if generator else "not_initialized",
+            "image_generator": "ready" if image_generator else "not_initialized",
+            "ingredient_analyzer": "ready"
+            if ingredient_analyzer
+            else "not_initialized",
+            "recipe_optimizer": "ready" if recipe_optimizer else "not_initialized",
+        },
+        "version": "baseline",
+        "environment": os.getenv("ENVIRONMENT", "development"),
+    }
